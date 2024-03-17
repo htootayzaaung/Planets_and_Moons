@@ -54,9 +54,8 @@ def collate_fn(batch):
     return images, targets
 
 if __name__ == "__main__":
-    #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    device = torch.device('cpu')
-    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(script_dir, '')  # Relative path to data directory
 
@@ -77,7 +76,8 @@ if __name__ == "__main__":
 
     for epoch in range(num_epochs):
         model.train()
-        for images, targets in data_loader:
+        print(f"Starting Epoch {epoch+1}/{num_epochs}")
+        for i, (images, targets) in enumerate(data_loader):
             images = list(img.to(device) for img in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
@@ -87,6 +87,9 @@ if __name__ == "__main__":
             optimizer.zero_grad()
             losses.backward()
             optimizer.step()
+
+            if i % 10 == 0:  # Adjust as needed for more or less frequent logging
+                print(f"Epoch: {epoch+1}, Batch: {i+1}, Loss: {losses.item()}")
 
         lr_scheduler.step()
         torch.save(model.state_dict(), f'fasterrcnn_resnet50_fpn_epoch{epoch}.pth')
