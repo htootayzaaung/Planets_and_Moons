@@ -1,0 +1,17 @@
+material Uranus
+{
+  receive_shadows off
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        // Relative to the location of the material script
+        texture ../textures/uranus.jpg
+        // Repeat the texture over the surface (4 per face)
+        scale 1 1
+      }
+    }
+  }
+}

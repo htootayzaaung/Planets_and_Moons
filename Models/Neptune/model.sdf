@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="Neptune">
+    <static>true</static>
+    <link name="robot_link">
+      <!-- Collision definition -->
+      <collision name="body_collision">
+        <geometry>
+          <box>
+            <size>0.35 0.5 0.01</size> <!-- Width, Height, Thin Depth -->
+          </box>
+        </geometry>
+      </collision>
+      
+      <!-- Visual appearance -->
+      <visual name="body_visual">
+        <geometry>
+          <box>
+            <size>0.35 0.5 0.01</size> <!-- Width, Height, Thin Depth -->
+          </box>
+        </geometry>
+        <material>
+          <script>
+           <uri>model://Neptune/materials/scripts/</uri>
+           <uri>model://Neptune/materials/textures/</uri>
+           <name>Neptune</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
+
