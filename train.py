@@ -65,7 +65,7 @@ if __name__ == "__main__":
     num_classes = len(dataset.classes) + 1
     model = get_model(num_classes).to(device)
     
-    num_epochs = 10
+    num_epochs = 30
     lr = 0.005
     momentum = 0.9
     weight_decay = 0.0005
