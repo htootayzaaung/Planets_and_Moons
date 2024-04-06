@@ -7,8 +7,6 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.io import read_image
 import os
 import torch.optim as optim
-import torch.nn.utils.prune as prune
-from torch.quantization import quantize_dynamic
 
 class PlanetsMoonsDataset(Dataset):
     def __init__(self, root_dir, transform=None):
@@ -27,17 +25,19 @@ class PlanetsMoonsDataset(Dataset):
                         path = os.path.join(root, fname)
                         item = path, class_index
                         self.imgs.append(item)
-
+                        
     def __len__(self):
         return len(self.imgs)
 
     def __getitem__(self, idx):
         img_path, class_index = self.imgs[idx]
-        image = read_image(img_path).float() / 255.0
+        image = read_image(img_path).float() / 255.0  # Normalize to [0, 1]
         if self.transform:
             image = self.transform(image)
+
         box = torch.tensor([[0, 0, 256, 144]], dtype=torch.float32)
         labels = torch.tensor([class_index], dtype=torch.int64)
+
         target = {'boxes': box, 'labels': labels}
         return image, target
 
@@ -53,29 +53,25 @@ def collate_fn(batch):
     targets = [item[1] for item in batch]
     return images, targets
 
-def apply_pruning(model):
-    for name, module in model.named_modules():
-        if isinstance(module, nn.Conv2d):
-            prune.l1_unstructured(module, name='weight', amount=0.2)
-            prune.remove(module, 'weight')
-
-def apply_quantization(model):
-    model = quantize_dynamic(model, {nn.Linear, nn.Conv2d}, dtype=torch.qint8)
-    return model
-
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(script_dir, '')
+    data_dir = os.path.join(script_dir, '')  # Relative path to data directory
 
     dataset = PlanetsMoonsDataset(root_dir=data_dir, transform=None)
     data_loader = DataLoader(dataset, batch_size=2, shuffle=True, num_workers=2, collate_fn=collate_fn)
 
     num_classes = len(dataset.classes) + 1
     model = get_model(num_classes).to(device)
+    
+    num_epochs = 10
+    lr = 0.005
+    momentum = 0.9
+    weight_decay = 0.0005
 
-    num_epochs = 20
-    optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.9, weight_decay=0.0005)
+    params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
     for epoch in range(num_epochs):
@@ -92,15 +88,12 @@ if __name__ == "__main__":
             losses.backward()
             optimizer.step()
 
-            if i % 10 == 0:
+            if i % 10 == 0:  # Adjust as needed for more or less frequent logging
                 print(f"Epoch: {epoch+1}, Batch: {i+1}, Loss: {losses.item()}")
 
         lr_scheduler.step()
+        torch.save(model.state_dict(), f'fasterrcnn_resnet50_fpn_epoch{epoch}.pth')
 
-    # Apply pruning and quantization after training
-    apply_pruning(model)
-    model = apply_quantization(model)
-
-    # Save the pruned and quantized model
-    torch.save(model.state_dict(), f'fasterrcnn_resnet50_fpn_epoch{num_epochs}_pruned_quantized.pth')
     print("Training finished!")
+    
+ # Please check and try out quantization and pruning and see if it can enhance inferencing speed and accuracy!
